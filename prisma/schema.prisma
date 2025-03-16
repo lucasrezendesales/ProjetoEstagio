@@ -1,0 +1,44 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  seed = "ts-node --compiler-options {\\\"module\\\":\\\"NodeNext\\\"} prisma/seed.ts"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  // Relacionamentos
+  transactions Transaction[]
+  accounts     Account[]
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  description String
+  amount      Float
+  type        String // 'income' ou 'expense'
+  date        DateTime @default(now())
+  category  String
+  paymentType String    // Ex: 'cartao', 'pix', 'boleto'
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model Account {
+  id      String   @id @default(uuid())
+  title   String
+  amount  Float
+  dueDate DateTime
+  status  String // 'paid' ou 'pending'
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
