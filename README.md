@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 2df5c4e (first commit)
 # 📌 Menu do Projeto
 
 ## 🗺 Diagramas
