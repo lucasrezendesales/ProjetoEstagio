@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model cadastra {
+  fk_usuario_id                Int
+  fk_contabancaria_portador_id Int
+  usuario                      usuario                @relation(fields: [fk_usuario_id], references: [id], onUpdate: NoAction, map: "fk_cadastra_1")
+  contabancaria_portador       contabancaria_portador @relation(fields: [fk_contabancaria_portador_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_cadastra_2")
+
+  @@id([fk_usuario_id, fk_contabancaria_portador_id])
+}
+
+model contabancaria_portador {
+  id                 Int               @id @default(autoincrement())
+  nome               String?           @db.VarChar(100)
+  banco              String?           @db.VarChar(100)
+  agencia            String?           @db.VarChar(20)
+  conta              String?           @db.VarChar(20)
+  saldo              Decimal?          @db.Decimal(15, 2)
+  ativo              Boolean?
+  usario_responsavel Int?
+  cadastra           cadastra[]
+  contapagar         contapagar[]
+  contareceber       contareceber[]
+  lancamentocaixa    lancamentocaixa[]
+  remessa            remessa[]
+}
+
+model contapagar {
+  id                           Int                     @id @default(autoincrement())
+  documento                    String?                 @db.VarChar(30)
+  valor                        Decimal?                @db.Decimal(15, 2)
+  valor_pago                   Decimal?                @db.Decimal(15, 2)
+  data_emissao                 DateTime?               @db.Date
+  data_vencimento              DateTime?               @db.Date
+  data_pagamento               DateTime?               @db.Date
+  situacao                     String?                 @db.VarChar(20)
+  fk_usuario_id                Int?
+  fk_contabancaria_portador_id Int?
+  fk_formapagamento_id         Int?
+  fk_notafiscalentrada_id      Int?
+  fk_faturamento_id            Int?
+  usuario                      usuario?                @relation(fields: [fk_usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contapagar_2")
+  contabancaria_portador       contabancaria_portador? @relation(fields: [fk_contabancaria_portador_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contapagar_3")
+  formapagamento               formapagamento?         @relation(fields: [fk_formapagamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contapagar_4")
+  notafiscalentrada            notafiscalentrada?      @relation(fields: [fk_notafiscalentrada_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contapagar_5")
+  faturamento                  faturamento?            @relation(fields: [fk_faturamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contapagar_6")
+}
+
+model contareceber {
+  id                           Int                     @id @default(autoincrement())
+  documento                    String?                 @db.VarChar(30)
+  valor                        Decimal?                @db.Decimal(15, 2)
+  valor_recebido               Decimal?                @db.Decimal(15, 2)
+  data_emissao                 DateTime?               @db.Date
+  data_vencimento              DateTime?               @db.Date
+  data_recebimento             DateTime?               @db.Date
+  situacao                     String?                 @db.VarChar(20)
+  fk_usuario_id                Int?
+  fk_contabancaria_portador_id Int?
+  fk_formapagamento_id         Int?
+  fk_notafiscalsaida_id        Int?
+  fk_faturamento_id            Int?
+  usuario                      usuario?                @relation(fields: [fk_usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contareceber_2")
+  contabancaria_portador       contabancaria_portador? @relation(fields: [fk_contabancaria_portador_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contareceber_3")
+  formapagamento               formapagamento?         @relation(fields: [fk_formapagamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contareceber_4")
+  notafiscalsaida              notafiscalsaida?        @relation(fields: [fk_notafiscalsaida_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contareceber_5")
+  faturamento                  faturamento?            @relation(fields: [fk_faturamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_contareceber_6")
+}
+
+model faturamento {
+  id              Int            @id @default(autoincrement())
+  data_inicio     DateTime?      @db.Date
+  data_fim        DateTime?      @db.Date
+  total_recebido  Decimal?       @db.Decimal(15, 2)
+  total_a_receber Decimal?       @db.Decimal(15, 2)
+  total_pago      Decimal?       @db.Decimal(15, 2)
+  total_a_pagar   Decimal?       @db.Decimal(15, 2)
+  saldo_final     Decimal?       @db.Decimal(15, 2)
+  status          String?        @db.VarChar(20)
+  fk_usuario_id   Int?
+  contapagar      contapagar[]
+  contareceber    contareceber[]
+  usuario         usuario?       @relation(fields: [fk_usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_faturamento_2")
+}
+
+model formapagamento {
+  id              Int               @id @default(autoincrement())
+  nome            String?           @db.VarChar(100)
+  codigo_fiscal   String?           @db.VarChar(20)
+  contapagar      contapagar[]
+  contareceber    contareceber[]
+  notafiscalsaida notafiscalsaida[]
+}
+
+model lancamentocaixa {
+  id                           Int                     @id @default(autoincrement())
+  tipo                         String?                 @db.VarChar(20)
+  valor                        Decimal?                @db.Decimal(15, 2)
+  data                         DateTime?               @db.Date
+  descricao                    String?                 @db.VarChar(100)
+  documento_referencia         String?                 @db.VarChar(30)
+  conciliado                   Boolean?
+  fk_usuario_id                Int?
+  fk_contabancaria_portador_id Int?
+  usuario                      usuario?                @relation(fields: [fk_usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lancamentocaixa_2")
+  contabancaria_portador       contabancaria_portador? @relation(fields: [fk_contabancaria_portador_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_lancamentocaixa_3")
+}
+
+model notafiscalentrada {
+  id           Int          @id @default(autoincrement())
+  numero       String?      @db.VarChar(20)
+  serie        String?      @db.VarChar(10)
+  data_emissao DateTime?    @db.Date
+  data_entrada DateTime?    @db.Date
+  valor_total  Decimal?     @db.Decimal(15, 2)
+  chave_acesso String?      @db.VarChar(44)
+  situacao     String?      @db.VarChar(20)
+  contapagar   contapagar[]
+}
+
+model notafiscalsaida {
+  id                   Int             @id @default(autoincrement())
+  numero               String?         @db.VarChar(20)
+  serie                String?         @db.VarChar(10)
+  data_emissao         DateTime?       @db.Date
+  valor_total          Decimal?        @db.Decimal(15, 2)
+  chave_acesso         String?         @db.VarChar(44)
+  situacao             String?         @db.VarChar(20)
+  fk_formapagamento_id Int?
+  contareceber         contareceber[]
+  formapagamento       formapagamento? @relation(fields: [fk_formapagamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notafiscalsaida_2")
+}
+
+model remessa {
+  id                           Int                     @id @default(autoincrement())
+  data_geracao                 DateTime?               @db.Date
+  data_envio                   DateTime?               @db.Date
+  quantidade_titulos           Int?
+  valor_total                  Decimal?                @db.Decimal(15, 2)
+  situacao                     String?                 @db.VarChar(20)
+  arquivo                      String?                 @db.VarChar(255)
+  fk_contabancaria_portador_id Int?
+  contabancaria_portador       contabancaria_portador? @relation(fields: [fk_contabancaria_portador_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_remessa_2")
+}
+
+model usuario {
+  id                Int               @id @default(autoincrement())
+  username          String?           @db.VarChar(50)
+  email             String?           @db.VarChar(100)
+  senha             String?           @db.VarChar(255)
+  nome_completo     String?           @db.VarChar(100)
+  ativo             Boolean?
+  data_criacao      DateTime?         @db.Timestamp(6)
+  ultimo_login      DateTime?         @db.Timestamp(6)
+  perfil            String?           @db.VarChar(50)
+  token_recuperacao String?           @db.VarChar(255)
+  token_validade    DateTime?         @db.Timestamp(6)
+  cadastra          cadastra[]
+  contapagar        contapagar[]
+  contareceber      contareceber[]
+  faturamento       faturamento[]
+  lancamentocaixa   lancamentocaixa[]
+}
