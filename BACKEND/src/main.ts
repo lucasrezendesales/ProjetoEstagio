@@ -1,24 +1,35 @@
 // src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as helmet from 'helmet';
-import * as csurf from 'csurf';
-import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Segurança
-  app.use(helmet.default());
-  app.use(cookieParser(process.env.COOKIE_SECRET));
+  // Get config service
+  const configService = app.get(ConfigService);
 
-  if (process.env.NODE_ENV === 'development') {
-    app.use(csurf({ cookie: true }));
-  }
+  // Security middlewares
+  app.use(helmet());
+  app.enableCors({
+    origin: configService.get('FRONTEND_URL') || '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
-  // Validação global
+  // Rate limiting
+  app.use(
+    rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // limit each IP to 100 requests per windowMs
+    })
+  );
+
+  // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -27,13 +38,33 @@ async function bootstrap() {
     })
   );
 
-  // Filtro de exceções global
-  app.useGlobalFilters(new HttpExceptionFilter());
+  // Swagger documentation
+  const config = new DocumentBuilder()
+    .setTitle('Financial ERP API')
+    .setDescription('API for the Financial ERP System')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth'
+    )
+    .build();
 
-  await app.listen(3000);
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api-docs', app, document);
+
+  // Start application
+  const port = configService.get('PORT') || 3000;
+  await app.listen(port, () => {
+    console.log(`Application is running on port ${port}`);
+    console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
+  });
 }
 
-bootstrap().catch((err) => {
-  console.error('Falha ao iniciar aplicativo', err);
-  process.exit(1);
-});
+bootstrap();

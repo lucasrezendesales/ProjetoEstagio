@@ -1,37 +1,38 @@
-// src/modules/auth/strategies/jwt.strategy.ts (atualizado)
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { Request } from 'express';
-import { RolePermissionMapping } from '../roles/role-permission.mapping';
-import { Role } from '../roles/role.enum';
+import { UserService } from '../../users/services/user.service';
+import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly userService: UserService
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (request: Request) => {
-          const token = request?.cookies?.Authentication || 
-                       request?.headers?.authorization?.split(' ')[1];
-          return token;
-        },
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ExtractJwt.fromUrlQueryParameter('token'),
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get('JWT_SECRET'),
+      secretOrKey: configService.get<string>('JWT_SECRET') || 'fallbackSecret', // Garante string
     });
   }
 
-  async validate(payload: any) {
-    const userRole = payload.perfil as Role;
-    const permissions = RolePermissionMapping[userRole] || [];
-    
-    return { 
-      userId: payload.sub, 
-      email: payload.email,
-      role: userRole,
-      permissions,
-    };
+  async validate(payload: any): Promise<User> {
+    const user = await this.userService.findById(payload.sub);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    return new User({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      active: user.active,
+    });
   }
 }

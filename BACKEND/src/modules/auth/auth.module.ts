@@ -1,46 +1,38 @@
-// src/modules/auth/auth.module.ts
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { UsersModule } from '../users/user.module';
+import { UsersModule } from '../users/users.module';
+import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { LocalStrategy } from './strategies/local.strategy';
-import { PrismaModule } from '../../../prisma/prisma.module';
-import { PasswordService } from './password.service';
-import { PasswordResetService } from './password-reset.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { RefreshTokenGuard } from './guards/refresh-token.guard';
+import { AuthService } from './services/auth.service';
 
 @Module({
   imports: [
-    UsersModule,
-    PrismaModule,
     PassportModule,
-    ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
-        await Promise.resolve();
-
-        return {
-          secret: configService.get<string>('JWT_SECRET'),
-          signOptions: {
-            expiresIn: configService.get<string>('JWT_EXPIRATION'),
-            algorithm: 'HS256',
-          },
-        };
-      },
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '15m' },
+      }),
       inject: [ConfigService],
     }),
+    UsersModule,
   ],
-  controllers: [AuthController],
   providers: [
     AuthService,
-    LocalStrategy,
     JwtStrategy,
-    PasswordService,
-    PasswordResetService,
+    JwtRefreshStrategy,
+    {
+      provide: 'APP_GUARD',
+      useClass: JwtAuthGuard, // Guard global
+    },
+    RolesGuard,
+    RefreshTokenGuard,
   ],
   exports: [AuthService],
 })
