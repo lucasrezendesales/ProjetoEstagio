@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+.main-header {
+    padding: 1rem 1.5rem;
+    background-color: var(--white);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+
+.menu-toggle {
+    border: none;
+    font-size: 1.25rem;
+    margin-right: 1rem;
+    cursor: pointer;
+}
